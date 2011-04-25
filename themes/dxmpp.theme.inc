@@ -73,7 +73,7 @@ function template_preprocess_dxmpp_chat(&$variables) {
   }
 
   if (module_exists('image') && dxmpp_variable_get('icon_imagecache')) {
-    $user_icon = file_create_url(image_style_path(dxmpp_variable_get('icon_imagecache'), $user->picture->uri));
+    $user_icon = image_style_url(dxmpp_variable_get('icon_imagecache'), $user->picture->uri);
   } else {
     $user_icon = file_create_url($user->picture->uri);
   }

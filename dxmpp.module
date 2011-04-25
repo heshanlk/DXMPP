@@ -579,7 +579,7 @@ function dxmpp_roster($account = NULL, $reset = FALSE) {
       // Set the proper picture URL.
       $picture = file_load($result->picture);
       if (isset($imagecache)) {
-        $rosters[$account->uid][$jid]->picture = file_create_url(image_style_path($imagecache, $picture->uri));
+        $rosters[$account->uid][$jid]->picture = image_style_url($imagecache, $picture->uri);
       } else {
         $rosters[$account->uid][$jid]->picture = file_create_url($picture->uri);
       }
