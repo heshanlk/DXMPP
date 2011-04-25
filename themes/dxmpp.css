@@ -1,0 +1,248 @@
+
+/**
+ * @file
+ * Default CSS Stylesheet for the DXMPP module.
+ */
+
+/**
+ * Fix the DXMPP Chat block to the bottom right of the page.
+ */
+
+.dxmpp-box {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 248px;
+}
+
+#dxmpp-chatbox {
+  right: 248px;
+  display: none;
+}
+
+.dxmpp-collapsed {
+  width: 248px;
+  height: 36px;
+}
+
+.dxmpp-header {
+  width: 248px;
+  height: 36px;
+  background-color: #0073ba;
+  color: white;
+}
+
+.dxmpp-header:hover {
+  background-color: #00598e;
+}
+
+.dxmpp-header .dxmpp-title {
+  float: left;
+  width: 200px;
+  height: 36px;
+}
+.dxmpp-header .dxmpp-button {
+  float: left;
+  width: 12px;
+  border: 1px solid white;
+}
+
+.dxmpp-content {
+  display: none;
+  border: 1px solid black;
+  color: black;
+  background-color: white;
+  height: 400px;
+}
+
+.dxmpp-content ul {
+  margin: 0;
+  padding: 0;
+}
+
+.dxmpp-roster-item, .dxmpp-empty-list-message {
+  height: 27px;
+  width: 246px;
+  border-bottom: 1px solid gray;
+  cursor: pointer;
+  cursor: hand;
+}
+.dxmpp-roster-item-inner-wrapper {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dxmpp-roster-item.last, .dxmpp-empty-list-message {
+  border-bottom: none;
+}
+
+.dxmpp-roster-item {
+  clear: left;
+  list-style-image:none;
+  list-style-position:outside;
+  list-style-type:none;
+  background: none;
+  padding: 0;
+}
+.dxmpp-roster-item:hover {
+  background-color: lightpink;
+}
+
+.dxmpp-status {
+  float: left;
+  width: 12px;
+  height: 12px;
+  margin: 3px 3px;
+  display: inline;
+  border: 1px solid;
+}
+.dxmpp-status-online .dxmpp-status {
+  background-color: LightGreen;
+}
+.dxmpp-status-away .dxmpp-status {
+  background-color: hotpink;
+}
+.dxmpp-status-unavailable .dxmpp-status {
+  background-color: gray;
+}
+
+.dxmpp-username {
+  float: left;
+  width: 180px;
+}
+.dxmpp-icon {
+  width: 27px;
+  height: 27px;
+  float: left;
+}
+
+#dxmpp-chatbox .ui-tabs .ui-tabs-hide {
+  display: none;
+}
+
+#dxmpp-chatbox .ui-tabs-nav a {
+  display: block;
+}
+
+#dxmpp-chatbox .ui-tabs-nav li {
+  border: 1px solid gray;
+  float: left;
+  height: 1.25em;
+  overflow: hidden;
+  width: 56px;
+}
+
+#dxmpp-chatbox .ui-tabs-nav .ui-tabs-selected {
+  background-color: gray;
+}
+
+.dxmpp-chat-message {
+  border-bottom: 1px solid gray;
+}
+.dxmpp-chat-message-info {
+  text-align: right;
+  color: gray;
+}
+.dxmpp-chat-name {
+  display: inline;
+}
+.dxmpp-chat-time {
+  display: inline;
+}
+
+.dxmpp-chat-messages {
+  overflow: auto;
+  height: 300px;
+  width: 240px;
+  clear: left;
+  border-top: 1px solid gray;
+  border-bottom: 1px solid gray;
+}
+.dxmpp-chat-input {
+  height: 50px;
+  margin: 6px;
+  width: 230px;
+}
+
+.dxmpp-me {
+  background-color: lightgray;
+}
+
+.dxmpp-name {
+  display: inline;
+}
+
+.dxmpp-title-status {
+  display: inline;
+}
+
+.dxmpp-settings-status {
+  display: inline;
+}
+
+.dxmpp-settings {
+  display: inline;
+}
+
+.dxmpp-chat-subtext {
+  border-bottom: 1px dotted gray;
+}
+
+.dxmpp-chat-events {
+  font-style: italic;
+  color: gray;
+}
+
+.ui-tabs-selected .dxmpp-close-tab {
+  display: block;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  cursor: hand;
+  background-image: url(images/close.png);
+  position: absolute;
+  top: 4px;
+  margin-left: 38px;
+}
+
+#dxmpp-cycle-tab-prev,
+#dxmpp-cycle-tab-next,
+.dxmpp-expand {
+  display: block;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  cursor: hand;
+  float: right;
+  margin: 5px;
+}
+
+/**
+ * Display the right arrow for the next tab cycle.
+ */
+#dxmpp-cycle-tab-next,
+#dxmpp-cycle-tab-prev {
+  background: url(images/right-left.png);
+}
+
+/**
+ * Display the left arrow for the next tab cycle.
+ */
+#dxmpp-cycle-tab-prev {
+  background-position: 24px;
+}
+
+/**
+ * Display a plus image for the expand button.
+ */
+.dxmpp-expand {
+  background: url(images/plus-minus.png);
+}
+
+/**
+ * Move over to the minus button when expanded.
+ */
+.dxmpp-expanded .dxmpp-expand {
+  background-position: 24px;
+}

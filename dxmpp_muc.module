@@ -1,0 +1,67 @@
+<?php
+
+/**
+ * @file
+ * Provides the Drupal XMPP MUC.
+ */
+/**
+ * Implementation of hook_menu().
+ */
+function dxmpp_muc_menu() {
+  $items = array();
+  $items['admin/settings/dxmpp/dxmpp_muc'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dxmpp_muc_settings_form'),
+    'file' => 'includes/dxmpp_muc.admin.inc',
+    'access arguments' => array('administer dxmpp_muc'),
+    'title' => 'DXMPP MUC settings',
+    'description' => 'Administer DXMPP MUC.',
+    
+  );
+  return $items;
+}  
+/**
+ * Implementation of hook_perm().
+ */
+function dxmpp_muc_perm() {
+  return array(
+    'administer dxmpp_muc',
+    'access dxmpp_muc content',
+  );
+}
+/**
+ * Implementation of hook_block().
+ */
+function dxmpp_muc_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list':
+      return array(
+        'muc_chat' => array(
+          'info' => t('DXMPP Multi User Chat'),
+        ),
+      );
+    case 'view':
+      if ($delta == 'muc_chat' && user_access('access dxmpp_muc content')) {
+        return array(
+          'subject' => t(''),
+          'content' => theme('dxmpp_muc_chat'),
+        );
+      }
+      break;
+  }
+}
+/**
+ * Implementation of hook_theme().
+ */
+function dxmpp_muc_theme($existing, $type, $theme, $path) {
+  return array(
+    'dxmpp_muc_chat' => array(
+      'template' => 'dxmpp_muc-chat',
+      'arguments' => array(),
+      'path' => drupal_get_path('module', 'dxmpp') .'/themes',
+      'file' => 'dxmpp_muc.theme.inc',
+      
+    ),
+  );
+}    
+

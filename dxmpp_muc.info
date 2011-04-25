@@ -1,0 +1,5 @@
+name = DXMPP MUC
+description = Provides the Drupal XMPP Multi User Chat service.
+core = 6.x
+package = XMPP
+dependencies[] = dxmpp

@@ -1,0 +1,642 @@
+<?php
+
+/**
+ * @file
+ * Provides the Drupal XMPP client.
+ */
+
+/* ***************************************** */
+/* INCLUDES                                  */
+/* ***************************************** */
+
+// Include the registry of variable_get defaults.
+include_once('includes/dxmpp.variables.inc');
+include_once('includes/dxmpp.tokens.inc');
+
+/**
+ * Implementation of hook_menu().
+ */
+function dxmpp_menu() {
+  $items = array();
+  $items['admin/settings/dxmpp'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dxmpp_settings_form'),
+    'file' => 'includes/dxmpp.admin.inc',
+    'access arguments' => array('administer dxmpp'),
+    'title' => 'DXMPP settings',
+    'description' => 'Administer DXMPP.',
+  );
+
+  // JSON callback to populate user list.
+  $items['dxmpp/user-list'] = array(
+    'page callback' => 'dxmpp_user_list_json',
+    'file' => 'includes/dxmpp.json-pages.inc',
+    'access arguments' => array('access dxmpp content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // JSON callback to synchronize roster.
+  $items['dxmpp/synch-roster'] = array(
+    'page callback' => 'dxmpp_synch_roster_json',
+    'file' => 'includes/dxmpp.json-pages.inc',
+    'access arguments' => array('access dxmpp content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // JSON callback to set presence for future page loads.
+  $items['dxmpp/set-presence'] = array(
+    'page callback' => 'dxmpp_set_presence_json',
+    'file' => 'includes/dxmpp.json-pages.inc',
+    'access arguments' => array('access dxmpp content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function dxmpp_perm() {
+  return array(
+    'administer dxmpp',
+    'access dxmpp content',
+  );
+}
+// function template_preprocess_dxmpp_chat(&$variables) {_template_preprocess_dxmpp_chat($variables);}
+/**
+ * Implementation of hook_theme().
+ */
+function dxmpp_theme($existing, $type, $theme, $path) {
+  return array(
+    'dxmpp_chat' => array(
+      'template' => 'dxmpp-chat',
+      'arguments' => array(),
+      'file' => 'dxmpp.theme.inc',
+      'path' => $path .'/themes',
+    ),
+    'dxmpp_roster_wrapper' =>array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_chatbox_wrapper' =>array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_title' => array(
+      'arguments' => array('title' => ''),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_roster' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_roster_item' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_roster_empty_message' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_chatbox' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_chat_message' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_chat_text' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_title_settings' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_chatbox_title' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_blank_title' => array(
+      'arguments' => array(),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+    'dxmpp_content' => array(
+      'arguments' => array('output'),
+      'file' => 'themes/dxmpp.theme.inc',
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function dxmpp_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list':
+      return array(
+        'chat' => array(
+          'info' => t('DXMPP Chat'),
+        ),
+      );
+    case 'view':
+      if ($delta == 'chat' && user_access('access dxmpp content')) {
+        return array(
+          'subject' => t(''),
+          'content' => theme('dxmpp_chat'),
+        );
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function dxmpp_init() {
+  // Autoload DXMPP classes when needed.
+  spl_autoload_register('dxmpp_autoload');
+}
+
+/**
+ * Autoload the DXMPP classes when needed.
+ */
+function dxmpp_autoload($class_name) {
+  switch ($class_name) {
+    case 'Jabber':
+      module_load_include('php', 'dxmpp', 'includes/jabberclass-0.9/class_Jabber');
+      break;
+    case 'dxmppUserRegister':
+      module_load_include('inc', 'dxmpp', 'includes/dxmpp.userRegisterClass');
+      break;
+    case 'dxmppUserRoster':
+      module_load_include('inc', 'dxmpp', 'includes/dxmpp.userRosterClass');
+      break;
+    case 'dxmppUserConnect':
+      module_load_include('inc', 'dxmpp', 'includes/dxmpp.userConnectClass');
+      break;
+    case 'dxmppUserDeregister':
+      module_load_include('inc', 'dxmpp', 'includes/dxmpp.userDeregisterClass');
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function dxmpp_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'load':
+      // Load the XMPP user/password. If there is none, then register & store.
+      //dxmpp_user_load($account);
+      break;
+    case 'delete':
+      // Delete the XMPP user & association.
+  	  if (!isset($account->dxmpp)) {
+    	$xmpp = db_fetch_object(db_query("SELECT xid, uid, xmpp_username, xmpp_password, presence FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
+    	if ($xmpp && $xmpp->xmpp_username) {
+      	  $account->dxmpp = $xmpp;
+    	}
+  	  }
+  	  if ($account->dxmpp) {
+  	  	$conn = new dxmppUserDeregister($account->dxmpp->xmpp_username, $account->dxmpp->xmpp_password);
+  	    if ($conn->deregistered) {
+  	    	$account->dxmpp->deleted = 1;
+            drupal_write_record('dxmpp_users', $account->dxmpp, array('xid'));
+  	    	
+  	    }
+  	    else {
+  	    	/** If the deregistration fails lets add this to cron. For this
+  	    	  * we will assign the deleted field an integer value of 2.
+  	    	  * So during cron run the module will again try to re-deregister
+  	    	  * all such entries that have 'deleted = 2'
+  	    	  */
+  	    	$account->dxmpp->deleted = 2;
+            drupal_write_record('dxmpp_users', $account->dxmpp, array('xid'));
+  	    }
+  	    	
+  	  }
+      break;
+  }
+}
+
+/**
+ * Load an XMPP user.
+ *
+ * @param &$account
+ *  The Drupal user account.
+ * @param $register
+ *  (Optional) If TRUE, then we'll attempt to register an account if there's
+ *  not currently one associated with the XMPP server.
+ * @return
+ *  The associated XMPP account object, or FALSE if unsuccessful.
+ */
+function dxmpp_user_load(&$account, $register = TRUE) {
+  if (!isset($account->dxmpp)) {
+    $xmpp = db_fetch_object(db_query("SELECT xid, uid, xmpp_username, xmpp_password, presence FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
+    if ($register && (!$xmpp || !$xmpp->xmpp_username)) {
+      $xmpp = dxmpp_user_register($account);
+    }
+    if ($xmpp && $xmpp->xmpp_username) {
+      $account->dxmpp = $xmpp;
+    }
+    else {
+      $account->dxmpp = FALSE;
+    }
+  }
+}
+
+/**
+ * Attempt to register an XMPP account for this user.
+ *
+ * Note that this can take a few seconds, as it requires communicating with the
+ * XMPP server and registering the account. If, during that time, the user has
+ * been registered already, then this will return the prior account and delete
+ * the newly registered XMPP account on the next cron run.
+ *
+ * @param object $account
+ *  The Drupal user account to register.
+ * @return mixed
+ *  The registered XMPP account object, or FALSE if unsuccessful.
+ */
+function dxmpp_user_register($account) {
+  // We don't register accounts for anonymous users.
+  if ($account->uid) {
+    // Strip out characters that are not alphanumeric, underscores, or hyphens.
+    $username = preg_replace('/[\W]/', '-', $account->name);    
+    // Create a random password.
+    $password = sha1($account->name . '/' . variable_get('dxmpp__random_string_for_password', ''));
+    // Attempt to register an XMPP account for the Drupal user.
+    $conn = new dxmppUserRegister($account->uid, $username, $password);
+    if ($conn->registered) {
+      // If the connection successfully registered, we need to ensure that
+      // another simultaneous page load didn't already register an account for
+      // this user.
+      $xmpp = db_fetch_object(db_query("SELECT uid, xid, xmpp_username, xmpp_password FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
+      if (!$xmpp || !$xmpp->xmpp_username) {
+        // We got there first, so record the account.
+        $conn->created = time();
+        drupal_write_record('dxmpp_users', $conn);
+
+        watchdog('dxmpp', 'Associated XMPP account: %account with !user.', array('%account' => $xmpp->xmpp_username, '!user' => l($account->name, 'user/'. $account->uid)));
+
+        if ($xmpp && !$xmpp->xmpp_username) {
+          // A request to register the user was made earlier, so let's delete it.
+          $xmpp->deleted = 1;
+          drupal_write_record('dxmpp_users', $xmpp, array('xid'));
+        }
+
+        // Synchronize the roster. @TODO: We need to scale this.
+        dxmpp_roster_synchronize($account->uid);
+
+        // Return the new XMPP object.
+        return $conn;
+      }
+      else {
+        // Someone else got there first, so add and mark this account for
+        // later deletion by cron.
+        $conn->deleted = TRUE;
+        drupal_write_record('dxmpp_users', $conn);
+
+        // Return the correct XMPP object.
+        return $xmpp;
+      }
+    }
+    else {
+      // The registration failed. However, there's a chance it was registered
+      // successfully by another page load, so check for that now.
+      $xmpp = db_fetch_object(db_query("SELECT uid, xid, xmpp_username, xmpp_password FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
+      if ($xmpp) {
+        return $xmpp;
+      }
+    }
+  }
+
+  // All attempts at registration failed this time around.
+  return FALSE;
+}
+
+/**
+ * Return the path to the Strophe library.
+ *
+ * If the path has not yet been set, or we're told to reset, then we'll attempt
+ * to autodiscover the library path where strophe.js resides. The result will
+ * be stored in a variable for later use.
+ *
+ * @param boolean $reset
+ *  If TRUE, then reset and attempt to autodiscover the path.
+ * @return string
+ *  The path where strophe.js resides.
+ */
+function dxmpp_strophe_path($reset = FALSE) {
+  static $path;
+
+  if (!isset($path) || $reset) {
+    if (!($path = dxmpp_variable_get('strophe_path')) || $reset) {
+      $path = dxmpp_library_path('strophe_path', '^strophe\.js$', 'strophe.js');
+    }
+  }
+
+  return $path;
+}
+
+/**
+ * Return the path to the flXHR library.
+ *
+ * If the path has not yet been set, or we're told to reset, then we'll attempt
+ * to autodiscover the library path where flXHR.swf resides. The result will
+ * be stored in a variable for later use.
+ *
+ * @param boolean $reset
+ *  If TRUE, then reset and attempt to autodiscover the path.
+ * @return string
+ *  The path where flXHR.swf resides.
+ */
+function dxmpp_flxhr_path($reset = FALSE) {
+  static $path;
+
+  if (!isset($path) || $reset) {
+    if (!($path = dxmpp_variable_get('flxhr_path')) || $reset) {
+      $path = dxmpp_library_path('flxhr_path', '^flXHR\.swf$', 'flXHR.swf');
+    }
+  }
+
+  return $path;
+}
+
+/**
+ * Return the path to the jQuery Cycle plugin.
+ *
+ * If the path has not yet been set, or we're told to reset, then we'll attempt
+ * to autodiscover the library path where jquery.cycle.all.min.js resides. The result will
+ * be stored in a variable for later use.
+ *
+ * @param boolean $reset
+ *  If TRUE, then reset and attempt to autodiscover the path.
+ * @return string
+ *  The path where jquery.cycle.all.min.js resides.
+ */
+function dxmpp_jquery_cycle_path($reset = FALSE) {
+  static $path;
+
+  if (!isset($path) || $reset) {
+    if (!($path = dxmpp_variable_get('jquery_cycle_path')) || $reset) {
+      $path = dxmpp_library_path('jquery_cycle_path', '^jquery\.cycle\.all\.min\.js$', 'jquery.cycle.all.min.js');
+    }
+  }
+
+  return $path;
+}
+
+/**
+ * Return the path to the jPlayer.
+ *
+ * If the path has not yet been set, or we're told to reset, then we'll attempt
+ * to autodiscover the library path where jquery.jplayer.min.js or jplayer.js resides. The result will
+ * be stored in a variable for later use.
+ *
+ * @param boolean $reset
+ *  If TRUE, then reset and attempt to autodiscover the path.
+ * @return string
+ *  The path where jquery.jplayer.min or jplayer.js resides.
+ */
+function dxmpp_jplayer_path($reset = FALSE) {
+  static $path;
+
+  if (!isset($path) || $reset) {
+    if (!($path = dxmpp_variable_get('jplayer_path')) || $reset) {
+      $path = dxmpp_library_path('jplayer_path', '^jquery\.jplayer\.min\.js$', 'jquery.jplayer.min.js');
+      if(!$path) {
+      	$path = dxmpp_library_path('jplayer_path', '^jplayer\.js$', 'jplayer.js');
+      	dxmpp_variable_set('jplayer_filename', 'jplayer.js');
+      }
+      else {
+      	dxmpp_variable_set('jplayer_filename', 'jquery.jplayer.min.js');
+      }
+    }
+  }
+
+  return $path;
+}
+
+/**
+ * Helper for the path autodiscovery functions.
+ *
+ * This will search for a specified match & file in /sites/all/libraries
+ * or sites/example.com/libraries.
+ *
+ * @param string $variable
+ *  The variable to set once discovering the path.
+ * @param string $match
+ *  A regex pattern to match.
+ * @param string $filename
+ *  The filename that will be searched for in the path.
+ * @return string
+ *  The path where $filename resides.
+ */
+function dxmpp_library_path($variable, $match, $filename) {
+  module_load_include('inc', 'dxmpp', 'includes/dxmpp.admin');
+  $path = _dxmpp_autodiscover_path($match, $filename);
+  dxmpp_variable_set($variable, $path);
+  return $path;
+}
+
+/**
+ * Implementation of hook_user_relationships()
+ * Hook is provided by the user_relationships_api module.
+ */
+function dxmpp_user_relationships($op, &$relationship) {
+  switch ($op) {
+    case 'approve':
+      dxmpp_roster_add($relationship->requester_id, $relationship->requestee_id);
+      break;
+    case 'request':
+      if ($relationship->type->requires_approval == 0) {
+        dxmpp_roster_add($relationship->requester_id, $relationship->requestee_id);
+      }
+      break;
+    case 'remove':
+      dxmpp_roster_remove($relationship->requester_id, $relationship->requestee_id);
+      break;
+  }
+}
+
+/**
+ * Add the friend to this user's XMPP roster.
+ *
+ * @param int $uid
+ *  The UID of the user to add.
+ * @param int $ruid
+ *  The UID of the relationship.
+ */
+function dxmpp_roster_add($uid, $ruid) {
+  if ($uid && $ruid) {
+    db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $uid, $ruid);
+    db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $ruid, $uid);
+    $relationship = (object) array(
+      'uid' => $uid,
+      'ruid' => $ruid,
+      'subscribed' => FALSE,
+      'in_roster' => FALSE,
+      'to_subscribe' => TRUE,
+      'to_roster' => TRUE,
+    );
+    drupal_write_record('dxmpp_roster', $relationship);
+    $relationship->uid = $ruid;
+    $relationship->ruid = $uid;
+    drupal_write_record('dxmpp_roster', $relationship);
+  }
+}
+
+/**
+ * Remove this friend from this user's XMPP roster.
+ *
+ * @param int $uid
+ *  The UID of the user to remove.
+ * @param int $ruid
+ *  The UID of the relationship.
+ */
+function dxmpp_roster_remove($uid, $ruid) {
+  if ($uid && $ruid) {
+    db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $uid, $ruid);
+    db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $ruid, $uid);
+    $relationship = (object) array(
+      'uid' => $uid,
+      'ruid' => $ruid,
+      'subscribed' => TRUE,
+      'in_roster' => TRUE,
+      'to_subscribe' => FALSE,
+      'to_roster' => FALSE,
+    );
+    drupal_write_record('dxmpp_roster', $relationship);
+    $relationship->uid = $ruid;
+    $relationship->ruid = $uid;
+    drupal_write_record('dxmpp_roster', $relationship);
+  }
+}
+
+/**
+ * Synchronizes a user's relationship friend list w/ XMPP.
+ */
+function dxmpp_roster_synchronize($uid = NULL, $group = NULL) {
+  if (!isset($uid)) {
+    global $user;
+    $uid = $user->uid;
+  }
+  if ($uid) {
+    $friends = user_relationships_load(array('user' => $uid));
+    foreach ($friends as $relationship) {
+      if ($relationship->approved) {
+        dxmpp_roster_add($uid, $relationship->requestee_id);
+      }
+    }
+  }
+}
+
+/**
+ * Retrieve the XMPP roster for the user.
+ *
+ * Note that this is the Drupal to XMPP associated user table.
+ * @param object $account
+ *   The Drupal user account to retrieve the roster for.
+ * @param boolean $reset
+ *   (Optional) If TRUE, then reset the static variable.
+ * @return array
+ *   An array associated by the XMPP JID, of DXMPP objects:
+ *      ->uid,            // The Drupal UID.
+ *      ->name,           // The Drupal username.
+ *      ->picture,        // A URL to the user picture, via imagecache if set.
+ *      ->xmpp_username,  // The XMPP username.
+ *      ->jid             // The XMPP JID, in the form of user@xmpp.domain.com.
+ *      ->fullJid,        // The XMPP JID pointing to the specific resource.
+ */
+function dxmpp_roster($account = NULL, $reset = FALSE) {
+  static $rosters, $imagecache;
+
+  if (!isset($account)) {
+    global $user;
+    $account = $user;
+  }
+
+  if (!isset($rosters) || $reset) {
+    $rosters = array();
+    $imagecache = (module_exists('imagecache') && dxmpp_variable_get('icon_imagecache')) ? dxmpp_variable_get('icon_imagecache') : NULL;
+  }
+  if (!isset($rosters[$account->uid])) {
+    $domain = dxmpp_variable_get('domain');
+    $rosters[$account->uid] = array();
+    $results = db_query("SELECT u.uid, u.name, u.picture, d.xmpp_username, r.subscribed, r.in_roster, r.to_subscribe, r.to_roster FROM {dxmpp_roster} r INNER JOIN {users} u ON u.uid = r.ruid INNER JOIN {dxmpp_users} d ON d.uid = r.ruid AND d.deleted = 0 WHERE r.uid = %d AND (NOT d.xmpp_username = '')", $account->uid);
+    while ($result = db_fetch_object($results)) {
+      // Set the JID.
+      $jid = check_plain($result->xmpp_username .'@'. $domain);
+      $rosters[$account->uid][$jid] = $result;
+
+      // Ensure usernames are plain text.
+      $rosters[$account->uid][$jid]->name = check_plain($rosters[$account->uid][$jid]->name);
+      $rosters[$account->uid][$jid]->xmpp_username = check_plain($rosters[$account->uid][$jid]->xmpp_username);
+
+      // Set the proper picture URL.
+      if (isset($imagecache)) {
+        $rosters[$account->uid][$jid]->picture = imagecache_create_url($imagecache, $result->picture);
+      }
+      else {
+        $rosters[$account->uid][$jid]->picture = url($result->picture);
+      }
+
+      // Note that until we know the XMPP resource of the contact, we will
+      // simply use the bare JID. The full JID will be set once that has been
+      // determined, by that user sending a message.
+      $rosters[$account->uid][$jid]->jid = $jid;
+      $rosters[$account->uid][$jid]->fullJid = $jid;
+    }
+  }
+
+  return $rosters[$account->uid];
+}
+
+/**
+ *  Implementation of hook_views_api().
+ */
+function dxmpp_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'dxmpp') . '/views',
+  );
+}
+
+/**
+ *  Implementation of hook_cron(). Cron cleanup work.
+ */
+function dxmpp_cron() {
+	db_query("DELETE FROM {dxmpp_users} WHERE deleted = 1");
+	$results = db_query("SELECT uid, xid, xmpp_username, xmpp_password FROM {dxmpp_users} WHERE deleted = 2");
+    while ($result = db_fetch_object($results)) {
+    	$conn = new dxmppUserDeregister($result->xmpp_username, $result->xmpp_password);
+  	    if ($conn->deregistered) {
+  	    	$result->deleted = 1;
+            drupal_write_record('dxmpp_users', $result, array('xid'));
+  	    }  	
+    }
+}
+
+function dxmpp_post_request($url, $data, $optional_headers = null)
+{
+  $params = array('http' => array(
+              'method' => 'POST',
+              'content' => $data
+            ));
+  if ($optional_headers !== null) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if (!$fp) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ($response === false) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}

@@ -1,0 +1,116 @@
+<?php
+
+/**
+ * @file
+ * Installation file for the DXMPP Authentication module.
+ */
+
+/**
+ * Implementation of hook_install().
+ */
+function dxmpp_auth_install() {
+  $success = drupal_install_schema('dxmpp_auth');
+
+  if ($success) {
+    drupal_set_message(st('The DXMPP Authentication module installed tables successfully.'));
+  }
+  else {
+    drupal_set_message(st('The installation of the DXMPP Authentication module failed.'), 'error');
+  }
+}
+
+
+function dxmpp_auth_uninstall() {
+  $success = drupal_uninstall_schema('dxmpp_auth');
+
+  if ($success) {
+    drupal_set_message(st('The DXMPP Authentication module uninstalled tables successfully.'));
+  }
+  else {
+    drupal_set_message(st('The uninstallation of the DXMPP Authentication module failed.'), 'error');
+  }
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function dxmpp_auth_schema() {
+  $schema = array();
+
+  $schema['dxmpp_auth_users'] = array(
+    'fields' => array(
+      'username' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Drupal user name.',
+      ),
+      'pass' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => "User's password (salted).",
+      ),
+      'origin' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Originating server for the user.',
+      ),
+      'domain' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'XMPP server for the user.',
+      ),
+    ),
+    'indexes' => array(
+      'origin' => array('origin'),
+      'domain' => array('domain'),
+      'username' => array('username'),
+    ),
+  );
+
+  $schema['dxmpp_auth_domains'] = array(
+    'fields' => array(
+      'origin' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Originating server for the user.',
+      ),
+      'domain' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'XMPP server for the user.',
+      ),
+      'secret' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Secret key for this origin/domain pair.',
+      ),
+      'salt' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Password salt for this origin/domain pair.',
+      ),
+    ),
+    'indexes' => array(
+      'origin' => array('origin'),
+      'domain' => array('domain'),
+    ),
+  );
+
+  return $schema;
+}

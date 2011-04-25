@@ -1,0 +1,392 @@
+<?php
+
+/**
+ * @file
+ * Installation file for the DXMPP module.
+ */
+
+/**
+ * A random string generator function
+ */
+function dxmpp_random_string_generator($length = 10) {
+	
+  // start with a blank password
+  $random_string = "";
+   // define possible characters
+  $possible = "123456789abcdefghijklmnpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
+  // set up a counter
+  $i = 0; 
+  // add random characters to $password until $length is reached
+  while ($i < $length) {
+    // pick a random character from the possible ones
+    $char = substr($possible, mt_rand(0, strlen($possible)-1), 1);
+        
+    // we don't want this character if it's already in the password
+    if (!strstr($random_string, $char)) { 
+      $random_string .= $char;
+      $i++;
+    }
+  }
+   // done!
+  return $random_string;   
+	
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function dxmpp_install() {
+  $success = drupal_install_schema('dxmpp');
+  
+  $random_string = dxmpp_random_string_generator(10);  
+  //Random string which will be later on used for password generation.
+  variable_set('dxmpp__random_string_for_password', $random_string);
+
+  if ($success) {
+    drupal_set_message(st('The DXMPP module installed tables successfully.'));
+  }
+  else {
+    drupal_set_message(st('The installation of the DXMPP module failed.'), 'error');
+  }
+}
+
+function dxmpp_uninstall() {
+  $success = drupal_uninstall_schema('dxmpp');
+
+  if ($success) {
+    drupal_set_message(st('The DXMPP module uninstalled tables successfully.'));
+  }
+  else {
+    drupal_set_message(st('The uninstallation of the DXMPP module failed.'), 'error');
+  }
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function dxmpp_schema() {
+  $schema = array();
+
+  $schema['dxmpp_users'] = array(
+    'fields' => array(
+      'xid' => array(
+        'description' => 'The primary identifier for an XMPP record.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'xmpp_username' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The XMPP account username.',
+      ),
+      'xmpp_password' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => "The XMPP account password.",
+      ),
+      'presence' => array(
+        'description' => "The XMPP account's preferred presence status, such as Available or Offline.",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 2,     // The default is Available.
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the XMPP account was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'deleted' => array(
+        'description' => 'Boolean indicating whether the XMPP account is to be deleted on the next cron.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'uid'     => array('uid'),
+      'xmpp_username' => array('xmpp_username'),
+      'created' => array('created'),
+      'deleted' => array('deleted'),
+    ),
+    'primary key' => array('xid'),
+  );
+  $schema['dxmpp_roster'] = array(
+    'fields' => array(
+      'uid' => array(
+        'description' => 'The user uid.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'ruid' => array(
+        'description' => 'The uid for the reciprocant account.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'subscribed' => array(
+        'description' => 'Boolean indicating whether the XMPP account has subscribed to the relationship.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'in_roster' => array(
+        'description' => 'Boolean indicating whether the relationship appears in the roster of the XMPP account.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'to_subscribe' => array(
+        'description' => 'Boolean indicating whether the XMPP account is to subscribe to the relationship.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'to_roster' => array(
+        'description' => 'Boolean indicating whether the relationship is to appear in the roster of the XMPP account.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'uid' => array('uid'),
+      'ruid' => array('ruid'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Add the ->deleted field to the schema.
+ */
+function dxmpp_update_6001() {
+  $ret = array();
+
+  db_add_field($ret, 'dxmpp_users', 'deleted', array(
+      'description' => 'Boolean indicating whether the XMPP account is to be deleted on the next cron.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+  db_add_index($ret, 'dxmpp_users', 'deleted', array('deleted'));
+
+  return $ret;
+}
+
+/**
+ * The dxmpp_users->uid is no longer a unique index.
+ */
+function dxmpp_update_6002() {
+  $ret = array();
+
+  db_drop_unique_key($ret, 'dxmpp_users', 'uid');
+  db_add_index($ret, 'dxmpp_users', 'uid', array('uid'));
+
+  return $ret;
+}
+
+/**
+ * Add the dxmpp_relationships table.
+ */
+function dxmpp_update_6003() {
+  $ret = array();
+
+  $schema['dxmpp_relationships'] = array(
+    'fields' => array(
+      'xmpp_username' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The XMPP account username.',
+      ),
+      'xmpp_relationship' => array(
+        'type' => 'varchar',
+        'length' => 60,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The XMPP account username for the relationship.',
+      ),
+      'subscribed' => array(
+        'description' => 'Boolean indicating whether the XMPP account has subscribed to the relationship.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'in_roster' => array(
+        'description' => 'Boolean indicating whether the relationship appears in the roster of the XMPP account.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'to_subscribe' => array(
+        'description' => 'Boolean indicating whether the XMPP account is to subscribe to the relationship.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'to_roster' => array(
+        'description' => 'Boolean indicating whether the relationship is to appear in the roster of the XMPP account.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'indexes' => array(
+      'xmpp_username' => array('xmpp_username'),
+      'xmpp_relationship' => array('xmpp_relationship'),
+    ),
+  );
+
+  db_create_table($ret, 'dxmpp_relationships', $schema['dxmpp_relationships']);
+
+  return $ret;
+}
+
+/**
+ * Add a unique xid to dxmpp_users.
+ */
+function dxmpp_update_6004() {
+  $ret = array();
+  db_add_field($ret, 'dxmpp_users', 'xid', array(
+      'description' => 'The primary identifier for an XMPP record.',
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    array('primary key' => array('xid'))
+  );
+
+  // Rename the relationships table to dxmpp_roster.
+  db_rename_table($ret, 'dxmpp_relationships', 'dxmpp_roster');
+
+  // Add the field to our roster table.
+  db_add_field($ret, 'dxmpp_roster', 'xid', array(
+      'description' => 'The XMPP record.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+  db_add_field($ret, 'dxmpp_roster', 'rxid', array(
+      'description' => 'The XMPP record for the related account.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+  db_add_index($ret, 'dxmpp_roster', 'xid', array('xid'));
+  db_add_index($ret, 'dxmpp_roster', 'rxid', array('rxid'));
+  db_drop_index($ret, 'dxmpp_roster', 'xmpp_username');
+  db_drop_index($ret, 'dxmpp_roster', 'xmpp_relationship');
+
+  return $ret;
+}
+
+/**
+ * Add a timestamp to the account.
+ */
+function dxmpp_update_6005() {
+  $ret = array();
+
+  db_add_field($ret, 'dxmpp_users', 'created', array(
+      'description' => 'The Unix timestamp when the XMPP account was created.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+  db_add_index($ret, 'dxmpp_users', 'created', array('created'));
+  return $ret;
+}
+
+/**
+ * Index roster by uid rather than xid.
+ */
+function dxmpp_update_6006() {
+  $ret = array();
+
+  db_drop_field($ret, 'dxmpp_roster', 'xmpp_username');
+  db_drop_field($ret, 'dxmpp_roster', 'xmpp_relationship');
+
+  db_drop_index($ret, 'dxmpp_roster', 'xid');
+  db_drop_index($ret, 'dxmpp_roster', 'rxid');
+
+  db_change_field($ret, 'dxmpp_roster', 'xid', 'uid', array(
+      'description' => 'The XMPP record.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+  db_change_field($ret, 'dxmpp_roster', 'rxid', 'ruid', array(
+      'description' => 'The XMPP record for the related account.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    )
+  );
+
+  db_add_index($ret, 'dxmpp_roster', 'uid', array('uid'));
+  db_add_index($ret, 'dxmpp_roster', 'ruid', array('ruid'));
+  return $ret;
+}
+
+/**
+ * Add dxmpp/synch-roster to the menu.
+ */
+function dxmpp_update_6007() {
+  menu_rebuild();
+  return array();
+}
+
+/**
+ * Add dxmpp/set-presence to the menu, and add that column to the db.
+ */
+function dxmpp_update_6008() {
+  $ret = array();
+  db_add_field($ret, 'dxmpp_users', 'presence', array(
+      'description' => "The XMPP account's preferred presence status, such as Available or Offline.",
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 2,     // The default is Available.
+    )
+  );
+
+  menu_rebuild();
+  return $ret;
+}
+
+/**
+ * Rebuild the theme to catch dxmpp-chat.tpl.php.
+ */
+function dxmpp_update_6009() {
+  drupal_rebuild_theme_registry();
+  return array();
+}
+
+function dxmpp_update_6010() {
+  $random_string = dxmpp_random_string_generator(10);  
+  //Random string which will be later on used for password generation.
+  variable_set('dxmpp__random_string_for_password', $random_string);
+  //We need to change callback_frequency from 1 to 2.
+  if (variable_get('dxmpp__callback_frequency') == 1) {
+    variable_set('dxmpp__callback_frequency', 2);
+  }
+  return array();
+}

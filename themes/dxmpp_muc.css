@@ -1,0 +1,114 @@
+
+
+.dxmpp_muc-hidden {
+    display: none
+}
+
+.clear {
+    clear: both;
+}
+
+#dxmpp_muc-toolbar {
+    text-align: center;
+    padding: 5px;
+    margin-bottom: 15px;
+}
+
+#dxmpp_muc-room-name {
+    font-size: 150%;
+    font-weight: bold;
+    background-color: #0073ba;
+  	color: white;
+  	height: 36px;
+  	cursor: pointer;
+}
+#dxmpp_muc-room-name:hover {
+  background-color: #00598e;
+}
+
+#dxmpp_muc-room-topic {
+    font-style: italic;
+    background-color: white;
+}
+
+#dxmpp_muc-chat-area {
+    float: left;
+    width: 248px;
+    display: block;
+    background-color: white;
+}
+
+#dxmpp_muc-chat {
+    overflow: auto;
+    height: 300px;
+    display: block;
+    border-bottom: 1px solid gray;
+    background-color: white;
+}
+
+#dxmpp_muc-participants {
+    float: left;
+    width: 200px;
+    height: 500px;
+    overflow: auto;
+}
+
+#dxmpp_muc-participant-list {
+    list-style: none;
+}
+
+#dxmpp_muc-input {
+    //width: 100%;
+    font-size: 120%;
+    height: 25px;
+    margin: 6px;
+  	width: 230px;
+}
+#dxmpp_muc-chat-body {
+	border: solid 1px #000;
+	/*height: 300px;*/
+}
+
+.dxmpp_muc-notice {
+    font-style: italic;
+    font-weight: bold;
+    color: #3d3;
+}
+
+.dxmpp_muc-error {
+    color: #d33;
+}
+
+.dxmpp_muc-message {
+    color: #aaa;
+}
+
+.dxmpp_muc-nick {
+    color: #66f;
+}
+
+.dxmpp_muc-self {
+    color: #f66;
+}
+
+.dxmpp_muc-body {
+    color: #000;
+}
+
+.dxmpp_muc-delayed {
+    opacity: 0.5;
+}
+
+.dxmpp_muc-private {
+    background-color: #fdd;
+}
+
+.dxmpp_muc-action {
+    color: #333;
+}
+#dxmpp_muc-chat-area {
+	position: fixed; 
+	bottom: 0; 
+	left: 0; 
+	z-index: 10; 
+} 

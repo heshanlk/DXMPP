@@ -1,0 +1,136 @@
+<?php
+
+/**
+ * @file
+ * Register remote users into an XMPP server.
+ */
+
+function dxmpp_auth_menu() {
+  $items = array();
+  return $items;
+}
+
+/**
+ * This will register an XMPP user.
+ *
+ * If the username is already taken, a new one will be generated and associated.
+ * This is because XMPP users may not have spaces or odd characters that a
+ * Drupal username might be allowed. Additionally, if this server allows users
+ * to be registered from multiple origin points, this will stop name clashes.
+ *
+ * @param string $username
+ *   The Drupal username to register.
+ * @param string $password
+ *   The desired salted password for the user.
+ * @param string $origin
+ *   (Optional) The originating domain where the Drupal user is registered.
+ * @param mixed $domain
+ *   (Optional) The XMPP server domain.
+ */
+function dxmpp_auth_register_xmpp_user($username, $password, $origin, $domain) {
+  // Remove anything not alphanumeric.
+  $username = dxmpp_auth_find_username(dxmpp_auth_clean_string($username));
+  $password = dxmpp_auth_clean_string($password);
+
+  if ($domain && $username && $password) {
+    $real_password = dxmpp_auth_unsalt_password($password, $origin, $domain);
+
+    // Register the user with ejabberd.
+    $return = shell_exec("ejabberdctl register $username $domain $real_password");
+
+    if (!$return) {
+      // Register the user object in the database.
+      $object = (object) array(
+        'username' => $username,
+        'password' => $password,
+        'origin' => $origin,
+        'domain' => $domain,
+      );
+      drupal_write_record('dxmpp_auth_users', $object);
+
+      // Return the resulting username, for remote association and storage.
+      return array(
+        'status' => 'ok',
+        'username' => $username,
+        'password' => $real_password,
+        'domain' => $domain,
+      );
+    }
+    else {
+      dpm($return);
+      return array(
+        'status' => 'error',
+        'error' => t('Username already exists.'),
+      );
+    }
+  }
+
+  return array(
+    'status' => 'error',
+    'error' => t('Invalid parameters.'),
+  );
+}
+
+function dxmpp_auth_unsalt_password($password, $origin, $domain) {
+  // @TODO: Unsalt the password. Salts are stored per origin/domain combo.
+  return $password;
+}
+
+/**
+ * Create a unique username.
+ */
+function dxmpp_auth_find_username($username) {
+  $test = $username;
+  while (db_result(db_query("SELECT username FROM {dxmpp_auth_users} WHERE username = '%s'", $test))) {
+    static $char = 0;
+    $test = $username .'-'. (++$char);
+  }
+  return $test;
+}
+
+/**
+ * Strips all non-alphanumeric, hyphen, or underscore characters.
+ */
+function dxmpp_auth_clean_string($string) {
+  return preg_replace('/\W-/', '', $string);
+}
+
+function dxmpp_auto_register_xmpp_user_callback() {
+  $expires = $_GET['expires'];
+  $auth = $_GET['auth'];
+  $username = $_GET['username'];
+  $password = $_GET['password'];
+  $signature = $_GET['signature'];
+
+  if ($expires < time()) {
+    return array(
+      'status' => 'error',
+      'error' => t('Link expired.'),
+    );
+  }
+
+  $object = db_fetch_object(db_query("SELECT origin, domain, secret FROM {dxmpp_auth_domains} WHERE auth = '%s'", $auth));
+  $key = "{$expires}/{$auth}/{$username}/{$password}/{$object->secret}";
+  $check = drupal_urlencode(sha1($key));
+  if (($signature != $check)) {
+    return array(
+      'status' => 'error',
+      'error' => t('Bad secret.'),
+    );
+  }
+
+  return dxmpp_auth_register_xmpp_user($username, $password, $object->origin, $object->domain);
+}
+
+/**
+ * Implementation of hook_xmlrpc().
+ */
+function dxmpp_auto_xmlrpc() {
+  return array(
+    array(
+      'dxmpp_auto.register_xmpp_user_callback',
+      'dxmpp_auto_register_xmpp_user_callback',
+      array('struct'),
+      t('Register an XMPP user')),
+  );
+}
