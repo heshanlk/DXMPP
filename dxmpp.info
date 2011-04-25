@@ -1,6 +1,6 @@
 name = DXMPP
 description = Provides the Drupal XMPP client.
-core = 6.x
+core = 7.x
 package = XMPP
 dependencies[] = jquery_update
 dependencies[] = jquery_ui

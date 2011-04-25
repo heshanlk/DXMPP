@@ -1,4 +1,4 @@
 name = DXMPP Authentication
 description = Allows the registration of XMPP users from a remote location.
-core = 6.x
+core = 7.x
 package = XMPP

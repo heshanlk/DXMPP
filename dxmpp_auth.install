@@ -6,32 +6,6 @@
  */
 
 /**
- * Implementation of hook_install().
- */
-function dxmpp_auth_install() {
-  $success = drupal_install_schema('dxmpp_auth');
-
-  if ($success) {
-    drupal_set_message(st('The DXMPP Authentication module installed tables successfully.'));
-  }
-  else {
-    drupal_set_message(st('The installation of the DXMPP Authentication module failed.'), 'error');
-  }
-}
-
-
-function dxmpp_auth_uninstall() {
-  $success = drupal_uninstall_schema('dxmpp_auth');
-
-  if ($success) {
-    drupal_set_message(st('The DXMPP Authentication module uninstalled tables successfully.'));
-  }
-  else {
-    drupal_set_message(st('The uninstallation of the DXMPP Authentication module failed.'), 'error');
-  }
-}
-
-/**
  * Implementation of hook_schema().
  */
 function dxmpp_auth_schema() {
