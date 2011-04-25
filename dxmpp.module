@@ -561,7 +561,7 @@ function dxmpp_roster($account = NULL, $reset = FALSE) {
 
   if (!isset($rosters) || $reset) {
     $rosters = array();
-    $imagecache = (module_exists('imagecache') && dxmpp_variable_get('icon_imagecache')) ? dxmpp_variable_get('icon_imagecache') : NULL;
+    $imagecache = (module_exists('image') && dxmpp_variable_get('icon_imagecache')) ? dxmpp_variable_get('icon_imagecache') : NULL;
   }
   if (!isset($rosters[$account->uid])) {
     $domain = dxmpp_variable_get('domain');
@@ -577,10 +577,11 @@ function dxmpp_roster($account = NULL, $reset = FALSE) {
       $rosters[$account->uid][$jid]->xmpp_username = check_plain($rosters[$account->uid][$jid]->xmpp_username);
 
       // Set the proper picture URL.
+      $picture = file_load($result->picture);
       if (isset($imagecache)) {
-        $rosters[$account->uid][$jid]->picture = imagecache_create_url($imagecache, $result->picture);
+        $rosters[$account->uid][$jid]->picture = file_create_url(image_style_path($imagecache, $picture->uri));
       } else {
-        $rosters[$account->uid][$jid]->picture = url($result->picture);
+        $rosters[$account->uid][$jid]->picture = file_create_url($picture->uri);
       }
 
       // Note that until we know the XMPP resource of the contact, we will

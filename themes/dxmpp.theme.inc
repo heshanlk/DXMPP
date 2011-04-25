@@ -19,43 +19,41 @@ function template_preprocess_dxmpp_chat(&$variables) {
     return '';
   }
 
-/*  if (!isset($_SESSION['dxmpp_session_id'])) {
+  /*  if (!isset($_SESSION['dxmpp_session_id'])) {
     // Set up a sufficiently large RID that will be incremented gradually
     // across page loads.
     //$_SESSION['dxmpp_request_id'] = rand(1000, 10000000);
-    
-    	$dxmpp_http_result = dxmpp_post_request('http://admin%40localhost:admin@localhost:5280/warm/', 'jid='.$user->dxmpp->xmpp_username.'@localhost&password='.$user->dxmpp->xmpp_password);
-    	$doc = simplexml_load_string($dxmpp_http_result);
-   
+
+    $dxmpp_http_result = dxmpp_post_request('http://admin%40localhost:admin@localhost:5280/warm/', 'jid='.$user->dxmpp->xmpp_username.'@localhost&password='.$user->dxmpp->xmpp_password);
+    $doc = simplexml_load_string($dxmpp_http_result);
+
     //$conn = new dxmppUserConnect($user->dxmpp->xmpp_username, $user->dxmpp->xmpp_password, $_SESSION['dxmpp_request_id']);
 
     // @TODO: Grab the proper  SID.
-    	$_SESSION['dxmpp_request_id'] = (int)$doc->body->dl->dd[2][0];
-    	$_SESSION['dxmpp_session_id'] = (string)$doc->body->dl->dd[1][0];
-    	$_SESSION['dxmpp_session_jid'] = (string)$doc->body->dl->dd[0][0];
-    	drupal_set_message($_SESSION['dxmpp_request_id']);
-    	 //print_r($dxmpp_http_result);
+    $_SESSION['dxmpp_request_id'] = (int)$doc->body->dl->dd[2][0];
+    $_SESSION['dxmpp_session_id'] = (string)$doc->body->dl->dd[1][0];
+    $_SESSION['dxmpp_session_jid'] = (string)$doc->body->dl->dd[0][0];
+    drupal_set_message($_SESSION['dxmpp_request_id']);
+    //print_r($dxmpp_http_result);
 
-  }
-  else {
-   	$_SESSION['dxmpp_request_id'] = $_SESSION['dxmpp_request_id'] + 1;
-   	drupal_set_message($_SESSION['dxmpp_request_id']);
-  }*/
+    }
+    else {
+    $_SESSION['dxmpp_request_id'] = $_SESSION['dxmpp_request_id'] + 1;
+    drupal_set_message($_SESSION['dxmpp_request_id']);
+    } */
 
   // Add the strophe library.
-  drupal_add_js(dxmpp_strophe_path() .'/strophe.js');
+  drupal_add_js(dxmpp_strophe_path() . '/strophe.js');
 
   // Optionally add the flxHR library.
   if (dxmpp_variable_get('use_flxhr')) {
-    drupal_add_js(dxmpp_flxhr_path() .'/flXHR.js');
-    drupal_add_js(dxmpp_strophe_path() .'/plugins/strophe.flxhr.js');
-    
+    drupal_add_js(dxmpp_flxhr_path() . '/flXHR.js');
+    drupal_add_js(dxmpp_strophe_path() . '/plugins/strophe.flxhr.js');
   }
-  
+
   // Optionally add the jPlayer js.
   if (dxmpp_variable_get('use_audio_alerts')) {
-    drupal_add_js(dxmpp_jplayer_path() .'/'. dxmpp_variable_get('jplayer_filename'));
-    
+    drupal_add_js(dxmpp_jplayer_path() . '/' . dxmpp_variable_get('jplayer_filename'));
   }
 
   // Add jQuery Tabs & Sortabe.
@@ -66,27 +64,25 @@ function template_preprocess_dxmpp_chat(&$variables) {
   jquery_ui_add('jquery.ui.sortable');
 
   // Add our listeners and other custom js & CSS.
-  drupal_add_js(drupal_get_path('module', 'dxmpp') .'/themes/js/ba-emotify.js');
-  drupal_add_js(drupal_get_path('module', 'dxmpp') .'/themes/js/dxmpp.js');
-  if(dxmpp_variable_get('theme') == 0) {
-  	drupal_add_css(drupal_get_path('module', 'dxmpp') .'/themes/dxmpp.css');
-  }
-  else {
-  	drupal_add_css(drupal_get_path('module', 'dxmpp') .'/themes/dxmpp-gmail.css');
-  }
-
-  if (module_exists('imagecache') && dxmpp_variable_get('icon_imagecache')) {
-    $user_icon = imagecache_create_url(dxmpp_variable_get('icon_imagecache'), $user->picture);
-  }
-  else {
-    $user_icon = url($user->picture);
+  drupal_add_js(drupal_get_path('module', 'dxmpp') . '/themes/js/ba-emotify.js');
+  drupal_add_js(drupal_get_path('module', 'dxmpp') . '/themes/js/dxmpp.js');
+  if (dxmpp_variable_get('theme') == 0) {
+    drupal_add_css(drupal_get_path('module', 'dxmpp') . '/themes/dxmpp.css');
+  } else {
+    drupal_add_css(drupal_get_path('module', 'dxmpp') . '/themes/dxmpp-gmail.css');
   }
 
-  $jid = $user->dxmpp->xmpp_username .'@'. dxmpp_variable_get('domain');
+  if (module_exists('image') && dxmpp_variable_get('icon_imagecache')) {
+    $user_icon = file_create_url(image_style_path(dxmpp_variable_get('icon_imagecache'), $user->picture->uri));
+  } else {
+    $user_icon = file_create_url($user->picture->uri);
+  }
+
+  $jid = $user->dxmpp->xmpp_username . '@' . dxmpp_variable_get('domain');
 
   if (dxmpp_variable_get('use_jquery_cycle') && dxmpp_variable_get('jquery_cycle_path')) {
     $use_jquery_cycle = TRUE;
-    drupal_add_js(dxmpp_jquery_cycle_path() .'/jquery.cycle.all.min.js');
+    drupal_add_js(dxmpp_jquery_cycle_path() . '/jquery.cycle.all.min.js');
   }
 
   // Add JS settings.
@@ -132,12 +128,12 @@ function template_preprocess_dxmpp_chat(&$variables) {
     'numberOfTabsInCycle' => dxmpp_variable_get('number_of_tabs_in_cycle'),
     'displayTypingMessage' => dxmpp_variable_get('display_typing_message'),
     'typingMessage' => dxmpp_variable_get('typing_message'),
-    'mp3_filepath' => url(drupal_get_path('module', 'dxmpp') .'/sounds/default.mp3'),
+    'mp3_filepath' => url(drupal_get_path('module', 'dxmpp') . '/sounds/default.mp3'),
     'swfpath' => url(dxmpp_jplayer_path()),
     'use_audio_alerts' => dxmpp_variable_get('use_audio_alerts'),
   );
 
-  $variables['roster_wrapper'] =  theme('dxmpp_roster_wrapper');
+  $variables['roster_wrapper'] = theme('dxmpp_roster_wrapper');
   $variables['chatbox_wrapper'] = theme('dxmpp_chatbox_wrapper');
 }
 
@@ -170,16 +166,17 @@ OUTPUT;
 }
 
 function theme_dxmpp_roster_empty_message() {
-  return '<div id="dxmpp-empty-list-message" class="dxmpp-empty-list-message">'. t(dxmpp_variable_get('roster_empty_message')) .'</div>';
+  return '<div id="dxmpp-empty-list-message" class="dxmpp-empty-list-message">' . t(dxmpp_variable_get('roster_empty_message')) . '</div>';
 }
 
 function theme_dxmpp_blank_roster() {
   return '<div id="dxmpp-roster" class="dxmpp-roster"><ul></ul></div>';
 }
+
 /*
-function theme_dxmpp_expand_button() {
-//   return '<div class="dxmpp-expand"></div>';
-}*/
+  function theme_dxmpp_expand_button() {
+  //   return '<div class="dxmpp-expand"></div>';
+  } */
 
 /**
  * This is an empty structure to be built in jQuery.
@@ -274,5 +271,5 @@ OUTPUT;
 }
 
 function theme_dxmpp_content($output = '') {
-  return '<div class="dxmpp-content">'. $output .'</div>';
+  return '<div class="dxmpp-content">' . $output . '</div>';
 }
