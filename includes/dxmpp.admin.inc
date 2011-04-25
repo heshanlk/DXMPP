@@ -24,7 +24,7 @@ function dxmpp_settings_form() {
   if (!dxmpp_variable_get('strophe_path')) {
     drupal_set_message(t("You must !download, and place its entire contents into %libraries.", array('!download' => l(t('download and extract the Strophe library'), 'http://code.stanziq.com/strophe/', array('attributes' => array('target' => '_blank'))), '%libraries' => 'sites/all/libraries')), 'error');
   }
-  
+
   $form = array();
 
   $form['server_info'] = array(
@@ -133,15 +133,14 @@ function dxmpp_settings_form() {
     '#type' => 'select',
     '#title' => t('Icon ImageCache preset'),
     '#default_value' => dxmpp_variable_get('icon_imagecache'),
-    '#description' => t('Please select the ImageCache preset to use to resize user icons for the chat roster. Note that they will also be resized by the browser to %px regardless of this setting, unless overridden by the theme or CSS. You can !administer to add new presets. Requires the !imagecache module to be installed.', array('%px' => t('@w x @h pixels', array('@w' => dxmpp_variable_get('icon_width'), '@h' => dxmpp_variable_get('icon_height'))), '!administer' => l(t('manage ImageCache presets'), 'admin/build/imagecache'), '!imagecache' => l(t('ImageCache'), 'http://drupal.org/project/imagecache', array('attributes' => array('target' => '_blank')))))
+    '#description' => t('Please select the Image style to use to resize user icons for the chat roster. Note that they will also be resized by the browser to %px regardless of this setting, unless overridden by the theme or CSS. You can !administer to add new presets.', array('%px' => t('@w x @h pixels', array('@w' => dxmpp_variable_get('icon_width'), '@h' => dxmpp_variable_get('icon_height'))), '!administer' => l(t('manage Image styles'), 'admin/config/media/image-styles'), '!imagecache' => l(t('ImageCache'), 'http://drupal.org/project/imagecache', array('attributes' => array('target' => '_blank')))))
   );
   $options = array('' => t('<none>'));
-  if (module_exists('imagecache')) {
-    foreach (imagecache_presets() as $preset) {
-      $options[$preset['presetname']] = $preset['presetname'];
+  if (module_exists('image')) {
+    foreach (image_styles() as $preset) {
+      $options[$preset['name']] = $preset['name'];
     }
-  }
-  else {
+  } else {
     $form[dxmpp_variable_name('icon_imagecache')]['#disabled'] = TRUE;
   }
   $form[dxmpp_variable_name('icon_imagecache')]['#options'] = $options;
@@ -150,9 +149,9 @@ function dxmpp_settings_form() {
     '#title' => t('Dxmpp Theme'),
     '#default_value' => dxmpp_variable_get('theme'),
     '#description' => t('Please select the Dxmpp Theme you want to use.'),
-  	'#options' => array( 0 => 'Default', 1 => 'Gmail')
+    '#options' => array(0 => 'Default', 1 => 'Gmail')
   );
-  
+
   $form['audio_alert'] = array(
     '#type' => 'fieldset',
     '#title' => t('Audio alerts'),
@@ -172,10 +171,10 @@ function dxmpp_settings_form() {
     '#default_value' => dxmpp_variable_get('jplayer_path'),
     '#description' => t("You need to download the latest stable release of the !library and extract the entire folder into sites/all/libraries and rename the folder as 'jplayer'. The path will be automatically discovered; you may override the directory path here if you wish to use another version; do not add slashes before or after the path.", array('!library' => l(t('jPlayer'), 'http://www.happyworm.com/jquery/jplayer/download.htm', array('attributes' => array('target' => '_blank'))))),
   );
-  if(!(dxmpp_variable_get('jplayer_path'))) {
-  	$form['audio_alert'][dxmpp_variable_get('use_audio_alerts')]['#disabled'] = TRUE;
+  if (!(dxmpp_variable_get('jplayer_path'))) {
+    $form['audio_alert'][dxmpp_variable_get('use_audio_alerts')]['#disabled'] = TRUE;
   }
-  
+
   $form['message'] = array(
     '#type' => 'fieldset',
     '#title' => t('Message options'),
@@ -212,24 +211,24 @@ function dxmpp_settings_form() {
   if (!module_exists('dxmpp_auth')) {
     $form[dxmpp_variable_name('use_dxmpp_auth')]['#disabled'] = TRUE;
   }
-/*
-  $form['http_pre_binding'] = array(
+  /*
+    $form['http_pre_binding'] = array(
     '#type' => 'fieldset',
     '#title' => t('Http Pre Binding'),
     '#collapsible' => TRUE,
-  );
-  $form['http_pre_binding'][dxmpp_variable_name('prebind_acl_username')] = array(
+    );
+    $form['http_pre_binding'][dxmpp_variable_name('prebind_acl_username')] = array(
     '#type' => 'textfield',
     '#title' => t(''),
     '#default_value' => dxmpp_variable_get('acl_password'),
     '#description' => t("This message will be displayed for users who have disabled JavaScript on their browser."),
-  );
-  $form['http_pre_binding'][dxmpp_variable_name('prebind_acl_password')] = array(
+    );
+    $form['http_pre_binding'][dxmpp_variable_name('prebind_acl_password')] = array(
     '#type' => 'textfield',
     '#title' => t('Message to display for no JavaScript'),
     '#default_value' => dxmpp_variable_get('acl_password'),
     '#description' => t("This message will be displayed for users who have disabled JavaScript on their browser."),
-  );*/
+    ); */
   $form['browser_detection'] = array(
     '#type' => 'fieldset',
     '#title' => t('Browser detection'),

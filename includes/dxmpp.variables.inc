@@ -3,7 +3,6 @@
 /**
  * @file Contains the variables and defaults used by DXMPP.
  */
-
 define('DXMPP_VARIABLE_NAMESPACE', 'dxmpp__');
 
 /**

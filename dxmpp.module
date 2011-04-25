@@ -4,10 +4,9 @@
  * @file
  * Provides the Drupal XMPP client.
  */
-
-/* ***************************************** */
+/* * **************************************** */
 /* INCLUDES                                  */
-/* ***************************************** */
+/* * **************************************** */
 
 // Include the registry of variable_get defaults.
 include_once('includes/dxmpp.variables.inc');
@@ -18,7 +17,7 @@ include_once('includes/dxmpp.tokens.inc');
  */
 function dxmpp_menu() {
   $items = array();
-  $items['admin/settings/dxmpp'] = array(
+  $items['admin/config/dxmpp'] = array(
     'page callback' => 'drupal_get_form',
     'page arguments' => array('dxmpp_settings_form'),
     'file' => 'includes/dxmpp.admin.inc',
@@ -54,14 +53,21 @@ function dxmpp_menu() {
 }
 
 /**
- * Implementation of hook_perm().
+ * Implementation of hook_permission().
  */
-function dxmpp_perm() {
+function dxmpp_permission() {
   return array(
-    'administer dxmpp',
-    'access dxmpp content',
+    'administer dxmpp' => array(
+      'title' => t('Administer DXMPP module'),
+      'restrict access' => TRUE,
+    ),
+    'access dxmpp content' => array(
+      'title' => t('Access DXMPP content'),
+      'restrict access' => TRUE,
+    ),
   );
 }
+
 // function template_preprocess_dxmpp_chat(&$variables) {_template_preprocess_dxmpp_chat($variables);}
 /**
  * Implementation of hook_theme().
@@ -70,84 +76,85 @@ function dxmpp_theme($existing, $type, $theme, $path) {
   return array(
     'dxmpp_chat' => array(
       'template' => 'dxmpp-chat',
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'dxmpp.theme.inc',
-      'path' => $path .'/themes',
+      'path' => $path . '/themes',
     ),
-    'dxmpp_roster_wrapper' =>array(
-      'arguments' => array(),
+    'dxmpp_roster_wrapper' => array(
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
-    'dxmpp_chatbox_wrapper' =>array(
-      'arguments' => array(),
+    'dxmpp_chatbox_wrapper' => array(
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_title' => array(
-      'arguments' => array('title' => ''),
+      'variables' => array('title' => ''),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_roster' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_roster_item' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_roster_empty_message' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_chatbox' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_chat_message' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_chat_text' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_title_settings' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_chatbox_title' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_blank_title' => array(
-      'arguments' => array(),
+      'variables' => array(),
       'file' => 'themes/dxmpp.theme.inc',
     ),
     'dxmpp_content' => array(
-      'arguments' => array('output'),
+      'variables' => array('output'),
       'file' => 'themes/dxmpp.theme.inc',
     ),
   );
 }
 
 /**
- * Implementation of hook_block().
+ * Implements hook_block_info().
  */
-function dxmpp_block($op = 'list', $delta = 0, $edit = array()) {
-  switch ($op) {
-    case 'list':
-      return array(
-        'chat' => array(
-          'info' => t('DXMPP Chat'),
-        ),
-      );
-    case 'view':
-      if ($delta == 'chat' && user_access('access dxmpp content')) {
-        return array(
-          'subject' => t(''),
-          'content' => theme('dxmpp_chat'),
-        );
-      }
-      break;
+function dxmpp_block_info() {
+  return array(
+    'chat' => array(
+      'info' => t('DXMPP Chat'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function dxmpp_block_view($delta = '') {
+  if ($delta == 'chat' && user_access('access dxmpp content')) {
+    return array(
+      'subject' => t(''),
+      'content' => theme('dxmpp_chat'),
+    );
   }
 }
 
@@ -183,41 +190,38 @@ function dxmpp_autoload($class_name) {
 }
 
 /**
- * Implementation of hook_user().
+ * Implementation of hook_user_load().
  */
-function dxmpp_user($op, &$edit, &$account, $category = NULL) {
-  switch ($op) {
-    case 'load':
-      // Load the XMPP user/password. If there is none, then register & store.
-      //dxmpp_user_load($account);
-      break;
-    case 'delete':
-      // Delete the XMPP user & association.
-  	  if (!isset($account->dxmpp)) {
-    	$xmpp = db_fetch_object(db_query("SELECT xid, uid, xmpp_username, xmpp_password, presence FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
-    	if ($xmpp && $xmpp->xmpp_username) {
-      	  $account->dxmpp = $xmpp;
-    	}
-  	  }
-  	  if ($account->dxmpp) {
-  	  	$conn = new dxmppUserDeregister($account->dxmpp->xmpp_username, $account->dxmpp->xmpp_password);
-  	    if ($conn->deregistered) {
-  	    	$account->dxmpp->deleted = 1;
-            drupal_write_record('dxmpp_users', $account->dxmpp, array('xid'));
-  	    	
-  	    }
-  	    else {
-  	    	/** If the deregistration fails lets add this to cron. For this
-  	    	  * we will assign the deleted field an integer value of 2.
-  	    	  * So during cron run the module will again try to re-deregister
-  	    	  * all such entries that have 'deleted = 2'
-  	    	  */
-  	    	$account->dxmpp->deleted = 2;
-            drupal_write_record('dxmpp_users', $account->dxmpp, array('xid'));
-  	    }
-  	    	
-  	  }
-      break;
+function dxmpp_user_load($users) {
+  // Load the XMPP user/password. If there is none, then register & store.
+  //_dxmpp_user_load($account);
+}
+
+/**
+ * Implementation of dxmpp_user_delete().
+ */
+function dxmpp_user_delete($account) {
+  // Delete the XMPP user & association.
+  if (!isset($account->dxmpp)) {
+    $xmpp = db_fetch_object(db_query("SELECT xid, uid, xmpp_username, xmpp_password, presence FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
+    if ($xmpp && $xmpp->xmpp_username) {
+      $account->dxmpp = $xmpp;
+    }
+  }
+  if ($account->dxmpp) {
+    $conn = new dxmppUserDeregister($account->dxmpp->xmpp_username, $account->dxmpp->xmpp_password);
+    if ($conn->deregistered) {
+      $account->dxmpp->deleted = 1;
+      drupal_write_record('dxmpp_users', $account->dxmpp, array('xid'));
+    } else {
+      /** If the deregistration fails lets add this to cron. For this
+       * we will assign the deleted field an integer value of 2.
+       * So during cron run the module will again try to re-deregister
+       * all such entries that have 'deleted = 2'
+       */
+      $account->dxmpp->deleted = 2;
+      drupal_write_record('dxmpp_users', $account->dxmpp, array('xid'));
+    }
   }
 }
 
@@ -232,16 +236,15 @@ function dxmpp_user($op, &$edit, &$account, $category = NULL) {
  * @return
  *  The associated XMPP account object, or FALSE if unsuccessful.
  */
-function dxmpp_user_load(&$account, $register = TRUE) {
+function _dxmpp_user_load(&$account, $register = TRUE) {
   if (!isset($account->dxmpp)) {
     $xmpp = db_fetch_object(db_query("SELECT xid, uid, xmpp_username, xmpp_password, presence FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
     if ($register && (!$xmpp || !$xmpp->xmpp_username)) {
-      $xmpp = dxmpp_user_register($account);
+      $xmpp = _dxmpp_user_register($account);
     }
     if ($xmpp && $xmpp->xmpp_username) {
       $account->dxmpp = $xmpp;
-    }
-    else {
+    } else {
       $account->dxmpp = FALSE;
     }
   }
@@ -260,11 +263,11 @@ function dxmpp_user_load(&$account, $register = TRUE) {
  * @return mixed
  *  The registered XMPP account object, or FALSE if unsuccessful.
  */
-function dxmpp_user_register($account) {
+function _dxmpp_user_register($account) {
   // We don't register accounts for anonymous users.
   if ($account->uid) {
     // Strip out characters that are not alphanumeric, underscores, or hyphens.
-    $username = preg_replace('/[\W]/', '-', $account->name);    
+    $username = preg_replace('/[\W]/', '-', $account->name);
     // Create a random password.
     $password = sha1($account->name . '/' . variable_get('dxmpp__random_string_for_password', ''));
     // Attempt to register an XMPP account for the Drupal user.
@@ -279,7 +282,7 @@ function dxmpp_user_register($account) {
         $conn->created = time();
         drupal_write_record('dxmpp_users', $conn);
 
-        watchdog('dxmpp', 'Associated XMPP account: %account with !user.', array('%account' => $xmpp->xmpp_username, '!user' => l($account->name, 'user/'. $account->uid)));
+        watchdog('dxmpp', 'Associated XMPP account: %account with !user.', array('%account' => $xmpp->xmpp_username, '!user' => l($account->name, 'user/' . $account->uid)));
 
         if ($xmpp && !$xmpp->xmpp_username) {
           // A request to register the user was made earlier, so let's delete it.
@@ -292,8 +295,7 @@ function dxmpp_user_register($account) {
 
         // Return the new XMPP object.
         return $conn;
-      }
-      else {
+      } else {
         // Someone else got there first, so add and mark this account for
         // later deletion by cron.
         $conn->deleted = TRUE;
@@ -302,8 +304,7 @@ function dxmpp_user_register($account) {
         // Return the correct XMPP object.
         return $xmpp;
       }
-    }
-    else {
+    } else {
       // The registration failed. However, there's a chance it was registered
       // successfully by another page load, so check for that now.
       $xmpp = db_fetch_object(db_query("SELECT uid, xid, xmpp_username, xmpp_password FROM {dxmpp_users} WHERE uid = %d AND deleted = 0", $account->uid));
@@ -407,12 +408,11 @@ function dxmpp_jplayer_path($reset = FALSE) {
   if (!isset($path) || $reset) {
     if (!($path = dxmpp_variable_get('jplayer_path')) || $reset) {
       $path = dxmpp_library_path('jplayer_path', '^jquery\.jplayer\.min\.js$', 'jquery.jplayer.min.js');
-      if(!$path) {
-      	$path = dxmpp_library_path('jplayer_path', '^jplayer\.js$', 'jplayer.js');
-      	dxmpp_variable_set('jplayer_filename', 'jplayer.js');
-      }
-      else {
-      	dxmpp_variable_set('jplayer_filename', 'jquery.jplayer.min.js');
+      if (!$path) {
+        $path = dxmpp_library_path('jplayer_path', '^jplayer\.js$', 'jplayer.js');
+        dxmpp_variable_set('jplayer_filename', 'jplayer.js');
+      } else {
+        dxmpp_variable_set('jplayer_filename', 'jquery.jplayer.min.js');
       }
     }
   }
@@ -475,12 +475,12 @@ function dxmpp_roster_add($uid, $ruid) {
     db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $uid, $ruid);
     db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $ruid, $uid);
     $relationship = (object) array(
-      'uid' => $uid,
-      'ruid' => $ruid,
-      'subscribed' => FALSE,
-      'in_roster' => FALSE,
-      'to_subscribe' => TRUE,
-      'to_roster' => TRUE,
+          'uid' => $uid,
+          'ruid' => $ruid,
+          'subscribed' => FALSE,
+          'in_roster' => FALSE,
+          'to_subscribe' => TRUE,
+          'to_roster' => TRUE,
     );
     drupal_write_record('dxmpp_roster', $relationship);
     $relationship->uid = $ruid;
@@ -502,12 +502,12 @@ function dxmpp_roster_remove($uid, $ruid) {
     db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $uid, $ruid);
     db_query("DELETE FROM {dxmpp_roster} WHERE uid = %d AND ruid = %d", $ruid, $uid);
     $relationship = (object) array(
-      'uid' => $uid,
-      'ruid' => $ruid,
-      'subscribed' => TRUE,
-      'in_roster' => TRUE,
-      'to_subscribe' => FALSE,
-      'to_roster' => FALSE,
+          'uid' => $uid,
+          'ruid' => $ruid,
+          'subscribed' => TRUE,
+          'in_roster' => TRUE,
+          'to_subscribe' => FALSE,
+          'to_roster' => FALSE,
     );
     drupal_write_record('dxmpp_roster', $relationship);
     $relationship->uid = $ruid;
@@ -569,7 +569,7 @@ function dxmpp_roster($account = NULL, $reset = FALSE) {
     $results = db_query("SELECT u.uid, u.name, u.picture, d.xmpp_username, r.subscribed, r.in_roster, r.to_subscribe, r.to_roster FROM {dxmpp_roster} r INNER JOIN {users} u ON u.uid = r.ruid INNER JOIN {dxmpp_users} d ON d.uid = r.ruid AND d.deleted = 0 WHERE r.uid = %d AND (NOT d.xmpp_username = '')", $account->uid);
     while ($result = db_fetch_object($results)) {
       // Set the JID.
-      $jid = check_plain($result->xmpp_username .'@'. $domain);
+      $jid = check_plain($result->xmpp_username . '@' . $domain);
       $rosters[$account->uid][$jid] = $result;
 
       // Ensure usernames are plain text.
@@ -579,8 +579,7 @@ function dxmpp_roster($account = NULL, $reset = FALSE) {
       // Set the proper picture URL.
       if (isset($imagecache)) {
         $rosters[$account->uid][$jid]->picture = imagecache_create_url($imagecache, $result->picture);
-      }
-      else {
+      } else {
         $rosters[$account->uid][$jid]->picture = url($result->picture);
       }
 
@@ -609,23 +608,22 @@ function dxmpp_views_api() {
  *  Implementation of hook_cron(). Cron cleanup work.
  */
 function dxmpp_cron() {
-	db_query("DELETE FROM {dxmpp_users} WHERE deleted = 1");
-	$results = db_query("SELECT uid, xid, xmpp_username, xmpp_password FROM {dxmpp_users} WHERE deleted = 2");
-    while ($result = db_fetch_object($results)) {
-    	$conn = new dxmppUserDeregister($result->xmpp_username, $result->xmpp_password);
-  	    if ($conn->deregistered) {
-  	    	$result->deleted = 1;
-            drupal_write_record('dxmpp_users', $result, array('xid'));
-  	    }  	
+  db_query("DELETE FROM {dxmpp_users} WHERE deleted = 1");
+  $results = db_query("SELECT uid, xid, xmpp_username, xmpp_password FROM {dxmpp_users} WHERE deleted = 2");
+  while ($result = db_fetch_object($results)) {
+    $conn = new dxmppUserDeregister($result->xmpp_username, $result->xmpp_password);
+    if ($conn->deregistered) {
+      $result->deleted = 1;
+      drupal_write_record('dxmpp_users', $result, array('xid'));
     }
+  }
 }
 
-function dxmpp_post_request($url, $data, $optional_headers = null)
-{
+function dxmpp_post_request($url, $data, $optional_headers = null) {
   $params = array('http' => array(
-              'method' => 'POST',
-              'content' => $data
-            ));
+      'method' => 'POST',
+      'content' => $data
+      ));
   if ($optional_headers !== null) {
     $params['http']['header'] = $optional_headers;
   }
